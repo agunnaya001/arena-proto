@@ -45,6 +45,7 @@ module.exports = {
   etherscan: {
     apiKey: {
       base: BASESCAN_API_KEY,
+      "base-sepolia": BASESCAN_API_KEY,
     },
     customChains: [
       {
@@ -53,6 +54,15 @@ module.exports = {
         urls: {
           apiURL: "https://api.basescan.org/api",
           browserURL: "https://basescan.org",
+        },
+      },
+      {
+        network: "base-sepolia",
+        chainId: 84532,
+        urls: {
+          // Etherscan v2 multichain endpoint — works with the same API key
+          apiURL: "https://api.etherscan.io/v2/api?chainid=84532",
+          browserURL: "https://sepolia.basescan.org",
         },
       },
     ],

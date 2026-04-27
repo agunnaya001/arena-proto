@@ -24,7 +24,8 @@ artifacts-monorepo/
 │   ├── api-server/         # Express API server
 │   └── arena-protocol/     # Arena Protocol frontend (React + Vite)
 ├── contracts/              # Solidity smart contracts (Hardhat)
-│   ├── ArenaCoin.sol       # ERC20 token (local; deployed equivalent is "ArenaToken")
+│   ├── ArenaCoin.sol       # ERC20 token V1 (local; deployed equivalent is "ArenaToken")
+│   ├── ArenaCoinV2.sol     # ERC20 V2: cap + roles + permit + burnable (audit-driven successor)
 │   ├── ArenaFighterNFT.sol # ERC721 fighters (local; deployed equivalent is "ArenaChampion")
 │   ├── ArenaBattle.sol     # Battle engine
 │   ├── ArenaStaking.sol    # Staking (NOT deployed)
@@ -81,6 +82,18 @@ User deployed 5 contracts (NOT from this codebase — different ABI; e.g. `arena
 | ArenaMarketplace | `ArenaMarketplace` | `0x67817157Dd6E5945ac2fAf1a822e7f1dE26C698E` |
 
 Verification helper scripts: `hardhat-scripts/match-bytecode.js` (brute-forces compiler settings), `hardhat-scripts/verify-arenacoin.js` (Etherscan v2 standard-JSON submitter), `hardhat-scripts/check-verified.js` (status checker). OZ v4.9.6 sources used for verification live in `.verify-deps/node_modules/`.
+
+### Audit & Successor Token
+
+- `AUDIT_ArenaCoin.md` — focused audit of the deployed ArenaCoin V1. Overall risk **3/10 (Low)**; no code bugs. Two HIGH findings: 97 % of supply in a single EOA (move to Safe multisig), and the reward economy is structurally impossible against a fixed supply (need treasury-funded pools or V2 with mintable role).
+- `contracts/ArenaCoinV2.sol` — successor token addressing the audit. Adds `ERC20Capped` (default 100M cap), `ERC20Burnable`, `ERC20Permit` (EIP-2612 gasless approvals), and `AccessControl` with `MINTER_ROLE` granted to battle/staking/vault contracts. `DEFAULT_ADMIN_ROLE` and initial supply both go to a treasury multisig at deploy — never an EOA.
+- Deploy: `npx hardhat run hardhat-scripts/deploy-arena-coin-v2.js --network base-sepolia` (or `--network base`). Required env: `ARENA_TREASURY_ADDRESS`. Optional: `ARENA_INITIAL_SUPPLY`, `ARENA_MAX_SUPPLY_CAP`, `ARENA_GRANT_MINTER_TO`.
+
+### Base Sepolia (testnet) wiring
+
+- Hardhat: `--network base-sepolia` (chainId 84532, RPC `https://sepolia.base.org`). Verification uses the same Etherscan v2 multichain key.
+- Faucets: https://www.alchemy.com/faucets/base-sepolia or https://faucet.quicknode.com/base/sepolia.
+- Frontend: set `VITE_USE_TESTNET=true` (and optionally `VITE_BASE_SEPOLIA_RPC_URL`) in `artifacts/arena-protocol/.env.local` for staging builds. Production (default, no flag) stays mainnet-only.
 
 ### Frontend Screens (React + Vite + Wagmi + RainbowKit)
 
