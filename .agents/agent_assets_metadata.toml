@@ -1,5 +1,52 @@
 uploads = []
-generated = []
+
+[[generated]]
+id = "i9iJmIJejUOlqUFN3Sbmy"
+uri = "file://attached_assets/generated_images/arena-protocol-logo.png"
+type = "image"
+title = "arena protocol logo"
+
+[[generated]]
+id = "C_8xOYcyqi_-mazd1sIwq"
+uri = "file://attached_assets/generated_images/arena-protocol-banner.png"
+type = "image"
+title = "arena banner"
+
+[[generated]]
+id = "g_TA52RpuGGLvZ6fw3_XX"
+uri = "file://attached_assets/generated_images/fighter-cyber-samurai.png"
+type = "image"
+title = "fighter cyber samurai"
+
+[[generated]]
+id = "P3tLN9APoG-nuL_6cUxSZ"
+uri = "file://attached_assets/generated_images/fighter-neon-brawler.png"
+type = "image"
+title = "fighter neon brawler"
+
+[[generated]]
+id = "IkGnsd6sdQyVrLvHDynMi"
+uri = "file://attached_assets/generated_images/fighter-quantum-mage.png"
+type = "image"
+title = "fighter quantum mage"
+
+[[generated]]
+id = "TSwS2PRRqcU3K5gCBLwzb"
+uri = "file://attached_assets/generated_images/fighter-chrome-assassin.png"
+type = "image"
+title = "fighter chrome assassin"
+
+[[generated]]
+id = "daOGWF402aHTusId1uEV8"
+uri = "file://attached_assets/generated_images/fighter-void-titan.png"
+type = "image"
+title = "fighter void titan"
+
+[[generated]]
+id = "E0c43M4H1tHMk0tjuAZ-P"
+uri = "file://attached_assets/generated_images/fighter-pulse-knight.png"
+type = "image"
+title = "fighter pulse knight"
 
 [[outputs]]
 id = "nybSjdP7PUj2-hfo2tKDx"

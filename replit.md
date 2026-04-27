@@ -158,3 +158,19 @@ OpenAPI 3.1 spec for Arena Protocol endpoints.
 ### `lib/api-zod` / `lib/api-client-react`
 
 Generated Zod schemas and React Query hooks from OpenAPI spec.
+
+## Brand & NFT Assets
+
+Logo, banner, and the 6 Arena Champion fighter NFTs live in
+`artifacts/arena-protocol/public/brand/` and `public/nfts/`. Originals are
+kept in `attached_assets/generated_images/`. The OpenSea-compatible
+collection metadata is in `public/nfts/metadata.json` and the front-end
+catalogue is `src/lib/fighters.ts` (single source of truth — used by the
+marketplace card image resolver). Logo is wired as the favicon and OG
+image in `index.html`.
+
+To re-seed the marketplace listings:
+
+```bash
+pnpm --filter @workspace/api-server exec tsx ../../scripts/seed-marketplace.ts
+```
