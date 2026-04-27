@@ -68,6 +68,20 @@ artifacts-monorepo/
 | ArenaMarketplace | NFT trading with 2% fee |
 | ArenaLeaderboard | On-chain player stats |
 
+### Deployed Contracts on Base Mainnet (all verified on Basescan)
+
+User deployed 5 contracts (NOT from this codebase — different ABI; e.g. `arenaToken()` getter, NFT named `ArenaChampion/CHAMP`). All verified with: solc **0.8.25**, EVM **paris**, optimizer **enabled / 200 runs**, OpenZeppelin **v4.9.6**.
+
+| Local label | Deployed name | Address |
+|---|---|---|
+| ArenaToken | `ArenaCoin` | `0x3b855F88CB93aA642EaEB13F59987C552Fc614b5` |
+| ArenaChampion | `ArenaChampion` | `0x68f08b005b09B0F7D07E1c0B5CDe18E43CE2486A` |
+| ArenaBattle | `ArenaBattle` | `0xF6fc2B6a306B626548ca9dF25B31a22D0f8971CF` |
+| ArenaPVP | `ArenaPvP` | `0xd0C4Af12E95f9590e7314D079C58597771E57533` |
+| ArenaMarketplace | `ArenaMarketplace` | `0x67817157Dd6E5945ac2fAf1a822e7f1dE26C698E` |
+
+Verification helper scripts: `hardhat-scripts/match-bytecode.js` (brute-forces compiler settings), `hardhat-scripts/verify-arenacoin.js` (Etherscan v2 standard-JSON submitter), `hardhat-scripts/check-verified.js` (status checker). OZ v4.9.6 sources used for verification live in `.verify-deps/node_modules/`.
+
 ### Frontend Screens (React + Vite + Wagmi + RainbowKit)
 
 - **Home** — Hero banner, stats, navigation CTAs

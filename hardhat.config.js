@@ -3,19 +3,29 @@ require("@nomicfoundation/hardhat-verify");
 require("dotenv").config();
 
 const PRIVATE_KEY = process.env.PRIVATE_KEY || "0x0000000000000000000000000000000000000000000000000000000000000001";
-const BASESCAN_API_KEY = process.env.BASESCAN_API_KEY || "";
+// The Etherscan v2 multichain API key works for Basescan as well, so accept either name.
+const BASESCAN_API_KEY = process.env.BASESCAN_API_KEY || process.env.ETHERSCAN_API_KEY || "";
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
   solidity: {
-    version: "0.8.24",
-    settings: {
-      optimizer: {
-        enabled: true,
-        runs: 200,
+    compilers: [
+      {
+        version: "0.8.24",
+        settings: {
+          optimizer: { enabled: true, runs: 200 },
+          evmVersion: "cancun",
+        },
       },
-      evmVersion: "cancun",
-    },
+      {
+        // Used for verifying user-supplied deployed contracts under contracts/deployed/*
+        version: "0.8.25",
+        settings: {
+          optimizer: { enabled: true, runs: 200 },
+          evmVersion: "cancun",
+        },
+      },
+    ],
   },
   networks: {
     base: {
