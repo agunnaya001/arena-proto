@@ -1,5 +1,12 @@
 require("dotenv").config();
 const { ethers } = require("ethers");
+const path = require("path");
+
+// Load JSON-encoded deployed addresses as a fallback when env vars aren't set.
+let DEPLOYED = { addresses: {} };
+try {
+  DEPLOYED = require(path.resolve(__dirname, "..", "contracts.deployed.json"));
+} catch {}
 
 const FIGHT_RESULT_ABI = [
   "event FightResult(address indexed player, bool win, uint256 indexed fighterId, uint8 mode, uint256 reward)",
@@ -20,15 +27,26 @@ function start(broadcast, pool) {
   try {
     provider = new ethers.JsonRpcProvider(rpcUrl);
 
-    const battleAddress = process.env.ARENA_BATTLE_ADDRESS;
-    const fighterAddress = process.env.ARENA_FIGHTER_NFT_ADDRESS;
-    const marketplaceAddress = process.env.ARENA_MARKETPLACE_ADDRESS;
+    // Resolution order: env var → contracts.deployed.json → undefined
+    const fromJson = (k) => DEPLOYED.addresses && DEPLOYED.addresses[k];
+    const battleAddress      = process.env.ARENA_BATTLE_ADDRESS      || fromJson("ArenaBattle");
+    const fighterAddress     = process.env.ARENA_CHAMPION_ADDRESS    || process.env.ARENA_FIGHTER_NFT_ADDRESS || fromJson("ArenaChampion");
+    const marketplaceAddress = process.env.ARENA_MARKETPLACE_ADDRESS || fromJson("ArenaMarketplace");
+    const tokenAddress       = process.env.ARENA_TOKEN_ADDRESS       || process.env.ARENA_COIN_ADDRESS       || fromJson("ArenaToken");
+    const pvpAddress         = process.env.ARENA_PVP_ADDRESS         || fromJson("ArenaPVP");
 
     if (!battleAddress || !fighterAddress || !marketplaceAddress) {
       console.log("[Indexer] Contract addresses not configured - skipping on-chain event indexing");
-      console.log("[Indexer] Set ARENA_BATTLE_ADDRESS, ARENA_FIGHTER_NFT_ADDRESS, ARENA_MARKETPLACE_ADDRESS in .env");
+      console.log("[Indexer] Set ARENA_BATTLE_ADDRESS, ARENA_CHAMPION_ADDRESS, ARENA_MARKETPLACE_ADDRESS in .env");
       return;
     }
+
+    console.log("[Indexer] Wired addresses:");
+    console.log("           ArenaToken      :", tokenAddress       || "(not set)");
+    console.log("           ArenaChampion   :", fighterAddress);
+    console.log("           ArenaBattle     :", battleAddress);
+    console.log("           ArenaPVP        :", pvpAddress         || "(not set)");
+    console.log("           ArenaMarketplace:", marketplaceAddress);
 
     arenaBattleContract = new ethers.Contract(battleAddress, FIGHT_RESULT_ABI, provider);
     arenaFighterNFTContract = new ethers.Contract(fighterAddress, FIGHT_RESULT_ABI, provider);

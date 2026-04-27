@@ -1,0 +1,30 @@
+{
+  "network": "base-mainnet",
+  "chainId": 8453,
+  "deployer": "0xFfb6505912FCE95B42be4860477201bb4e204E9f",
+  "deployedAt": "2026-04-27",
+  "addresses": {
+    "ArenaToken":       "0x3b855F88CB93aA642EaEB13F59987C552Fc614b5",
+    "ArenaChampion":    "0x68f08b005b09B0F7D07E1c0B5CDe18E43CE2486A",
+    "ArenaBattle":      "0xF6fc2B6a306B626548ca9dF25B31a22D0f8971CF",
+    "ArenaPVP":         "0xd0C4Af12E95f9590e7314D079C58597771E57533",
+    "ArenaMarketplace": "0x67817157Dd6E5945ac2fAf1a822e7f1dE26C698E",
+    "ArenaStaking":      null,
+    "ArenaRewardVault":  null,
+    "ArenaLeaderboard":  null
+  },
+  "verified": {
+    "ArenaToken":       false,
+    "ArenaChampion":    false,
+    "ArenaBattle":      false,
+    "ArenaPVP":         false,
+    "ArenaMarketplace": false
+  },
+  "explorer": {
+    "ArenaToken":       "https://basescan.org/address/0x3b855F88CB93aA642EaEB13F59987C552Fc614b5",
+    "ArenaChampion":    "https://basescan.org/address/0x68f08b005b09B0F7D07E1c0B5CDe18E43CE2486A",
+    "ArenaBattle":      "https://basescan.org/address/0xF6fc2B6a306B626548ca9dF25B31a22D0f8971CF",
+    "ArenaPVP":         "https://basescan.org/address/0xd0C4Af12E95f9590e7314D079C58597771E57533",
+    "ArenaMarketplace": "https://basescan.org/address/0x67817157Dd6E5945ac2fAf1a822e7f1dE26C698E"
+  }
+}

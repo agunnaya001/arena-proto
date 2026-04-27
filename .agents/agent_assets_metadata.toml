@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "nybSjdP7PUj2-hfo2tKDx"
+uri = "file://AUDIT.md"
+type = "text"
+title = "Arena Protocol — Security Audit Report"
