@@ -2,6 +2,7 @@ import { useGetMarketListings } from "@workspace/api-client-react"
 import { Store, Filter } from "lucide-react"
 import { FighterCard } from "@/components/FighterCard"
 import { Button } from "@/components/ui/button"
+import { fighterImage } from "@/lib/fighters"
 
 export default function Marketplace() {
   const { data: listings, isLoading } = useGetMarketListings({ limit: 20 })
@@ -37,7 +38,7 @@ export default function Marketplace() {
             <FighterCard
               key={item.tokenId}
               id={item.tokenId}
-              image={`${import.meta.env.BASE_URL}images/fighter-${(parseInt(item.tokenId) % 3) + 1}.png`} // Mock image resolution
+              image={fighterImage(item.tokenId, import.meta.env.BASE_URL)}
               rarity={item.rarity}
               stats={{
                 strength: item.strength,

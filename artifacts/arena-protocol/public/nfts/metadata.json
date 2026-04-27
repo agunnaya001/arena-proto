@@ -1,0 +1,103 @@
+{
+  "$schema": "https://docs.opensea.io/docs/metadata-standards",
+  "collection": {
+    "name": "Arena Champions",
+    "description": "Cybernetic warriors of the Arena Protocol. Each champion holds on-chain stats and a permanent battle record. Mint, train, fight, and trade.",
+    "image": "/brand/logo.png",
+    "external_link": "https://arenaprotocol.xyz",
+    "fee_recipient": "0xFfb6505912FCE95B42be4860477201bb4e204E9f",
+    "seller_fee_basis_points": 200
+  },
+  "fighters": [
+    {
+      "tokenId": "1",
+      "slug": "cyber-samurai",
+      "name": "Kaede / Cyber Samurai",
+      "description": "Twin neon-katana wielder forged in the rain-soaked streets of Neo-Kyoto.",
+      "image": "/nfts/cyber-samurai.png",
+      "rarity": "Epic",
+      "attributes": [
+        { "trait_type": "Class",        "value": "Samurai" },
+        { "trait_type": "Rarity",       "value": "Epic" },
+        { "trait_type": "Strength",     "value": 78 },
+        { "trait_type": "Speed",        "value": 92 },
+        { "trait_type": "Intelligence", "value": 71 }
+      ]
+    },
+    {
+      "tokenId": "2",
+      "slug": "neon-brawler",
+      "name": "Rook / Neon Brawler",
+      "description": "Underground pit fighter with plasma-charged knuckles. Never lost in the lower districts.",
+      "image": "/nfts/neon-brawler.png",
+      "rarity": "Common",
+      "attributes": [
+        { "trait_type": "Class",        "value": "Brawler" },
+        { "trait_type": "Rarity",       "value": "Common" },
+        { "trait_type": "Strength",     "value": 88 },
+        { "trait_type": "Speed",        "value": 64 },
+        { "trait_type": "Intelligence", "value": 42 }
+      ]
+    },
+    {
+      "tokenId": "3",
+      "slug": "quantum-mage",
+      "name": "Vex / Quantum Mage",
+      "description": "Reads the data-stream like spellwork. Channels probability into damage.",
+      "image": "/nfts/quantum-mage.png",
+      "rarity": "Rare",
+      "attributes": [
+        { "trait_type": "Class",        "value": "Mage" },
+        { "trait_type": "Rarity",       "value": "Rare" },
+        { "trait_type": "Strength",     "value": 38 },
+        { "trait_type": "Speed",        "value": 71 },
+        { "trait_type": "Intelligence", "value": 96 }
+      ]
+    },
+    {
+      "tokenId": "4",
+      "slug": "chrome-assassin",
+      "name": "Mira / Chrome Assassin",
+      "description": "Silent contractor for the syndicate. Reflex implants give her the first strike, every time.",
+      "image": "/nfts/chrome-assassin.png",
+      "rarity": "Epic",
+      "attributes": [
+        { "trait_type": "Class",        "value": "Assassin" },
+        { "trait_type": "Rarity",       "value": "Epic" },
+        { "trait_type": "Strength",     "value": 67 },
+        { "trait_type": "Speed",        "value": 99 },
+        { "trait_type": "Intelligence", "value": 74 }
+      ]
+    },
+    {
+      "tokenId": "5",
+      "slug": "void-titan",
+      "name": "Crusher-IX / Void Titan",
+      "description": "Decommissioned siege mech. Rebuilt by the Pit and unleashed on the Arena.",
+      "image": "/nfts/void-titan.png",
+      "rarity": "Legendary",
+      "attributes": [
+        { "trait_type": "Class",        "value": "Titan" },
+        { "trait_type": "Rarity",       "value": "Legendary" },
+        { "trait_type": "Strength",     "value": 100 },
+        { "trait_type": "Speed",        "value": 38 },
+        { "trait_type": "Intelligence", "value": 62 }
+      ]
+    },
+    {
+      "tokenId": "6",
+      "slug": "pulse-knight",
+      "name": "Aster / Pulse Knight",
+      "description": "Order of the Lit Cross. Defends the Arena's last code of honour with a plasma greatsword.",
+      "image": "/nfts/pulse-knight.png",
+      "rarity": "Rare",
+      "attributes": [
+        { "trait_type": "Class",        "value": "Knight" },
+        { "trait_type": "Rarity",       "value": "Rare" },
+        { "trait_type": "Strength",     "value": 84 },
+        { "trait_type": "Speed",        "value": 70 },
+        { "trait_type": "Intelligence", "value": 76 }
+      ]
+    }
+  ]
+}
