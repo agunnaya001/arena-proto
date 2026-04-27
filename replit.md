@@ -24,13 +24,15 @@ artifacts-monorepo/
 │   ├── api-server/         # Express API server
 │   └── arena-protocol/     # Arena Protocol frontend (React + Vite)
 ├── contracts/              # Solidity smart contracts (Hardhat)
-│   ├── ArenaCoin.sol       # ERC20 token
-│   ├── ArenaFighterNFT.sol # ERC721 fighters
+│   ├── ArenaCoin.sol       # ERC20 token (local; deployed equivalent is "ArenaToken")
+│   ├── ArenaFighterNFT.sol # ERC721 fighters (local; deployed equivalent is "ArenaChampion")
 │   ├── ArenaBattle.sol     # Battle engine
-│   ├── ArenaStaking.sol    # Staking contract
-│   ├── ArenaRewardVault.sol# Reward pool
+│   ├── ArenaStaking.sol    # Staking (NOT deployed)
+│   ├── ArenaRewardVault.sol# Reward pool (NOT deployed)
 │   ├── ArenaMarketplace.sol# NFT marketplace
-│   └── ArenaLeaderboard.sol# On-chain leaderboard
+│   └── ArenaLeaderboard.sol# On-chain leaderboard (NOT deployed)
+├── contracts.deployed.json # On-chain addresses for deployed Arena contracts (Base Mainnet)
+├── AUDIT.md                # Comprehensive security audit of all 7 local contracts
 ├── scripts/                # Deploy + verify Hardhat scripts
 │   ├── deploy.js
 │   └── verify.js
