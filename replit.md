@@ -174,3 +174,28 @@ To re-seed the marketplace listings:
 ```bash
 pnpm --filter @workspace/api-server exec tsx ../../scripts/seed-marketplace.ts
 ```
+
+## Production Readiness
+
+- **Treasury address** `0x725615639B760DAa64b3e794AA49B5A9a8A7632E` is the
+  single source of truth for: marketplace listings (SELLER), NFT metadata
+  `fee_recipient`, default for `ARENA_TREASURY_ADDRESS` env, and the
+  ArenaCoinV2 deploy script. Override per-environment via env var.
+- **No mocks.** Wallet connection uses real `wagmi` (`injected` +
+  `coinbaseWallet`). Mint, fight, list, buy all use real
+  `useWriteContract` against verified Base Mainnet contracts; results are
+  decoded from on-chain receipts and mirrored to the API for analytics.
+- **API hardening.** `helmet`, `compression`, `cors`, `trust-proxy 1`,
+  general 600 req/min rate limit, write 30 req/min rate limit on
+  `POST /api/battles`, JSON body size capped at 256 KB, structured 404 +
+  500 handlers.
+- **Stats endpoint.** `GET /api/stats` aggregates `activeFighters`,
+  `totalBattles`, `totalRewardsArena`, `activeListings` from Postgres and
+  powers the home page network-stats cards (alongside live ARENA token
+  `totalSupply()` from chain).
+- **UX polish.** Top-bar `<ConnectWallet>` (wallet picker + Basescan link
+  + copy address + chain switcher when not on Base), `<ErrorBoundary>`
+  wrapping the App, loading skeletons for marketplace + leaderboard, empty
+  states for "no fighters" / "no battles" / "no listings", typed Basescan
+  links on every transaction, mobile bottom-nav, sticky desktop header,
+  signed footer linking to verified ArenaToken contract.

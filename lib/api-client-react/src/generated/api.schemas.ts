@@ -60,6 +60,17 @@ export interface MarketListing {
   active: boolean;
 }
 
+export interface ProtocolStats {
+  /** Distinct registered players */
+  activeFighters: number;
+  /** Total battles recorded */
+  totalBattles: number;
+  /** Total ARENA paid out across all wins, as a decimal string */
+  totalRewardsArena: string;
+  /** Active marketplace listings */
+  activeListings: number;
+}
+
 export interface ErrorResponse {
   error: string;
 }

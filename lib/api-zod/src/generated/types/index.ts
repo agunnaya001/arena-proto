@@ -15,4 +15,5 @@ export * from "./healthStatus";
 export * from "./leaderboardEntry";
 export * from "./marketListing";
 export * from "./playerStats";
+export * from "./protocolStats";
 export * from "./recordBattleRequest";

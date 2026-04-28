@@ -40,7 +40,8 @@ router.get("/players/:address", async (req, res) => {
       .limit(1);
 
     if (players.length === 0) {
-      return res.status(404).json({ error: "Player not found" });
+      res.status(404).json({ error: "Player not found" });
+      return;
     }
 
     const player = players[0];
@@ -97,7 +98,24 @@ router.get("/battles", async (req, res) => {
 
 router.post("/battles", async (req, res) => {
   try {
-    const { player, fighterId, win, reward, mode, txHash } = req.body;
+    const { player, fighterId, win, reward, mode, txHash } = req.body ?? {};
+
+    if (typeof player !== "string" || !/^0x[0-9a-fA-F]{40}$/.test(player)) {
+      res.status(400).json({ error: "Invalid player address" });
+      return;
+    }
+    if (typeof fighterId !== "string" || fighterId.length === 0) {
+      res.status(400).json({ error: "fighterId is required" });
+      return;
+    }
+    if (typeof win !== "boolean") {
+      res.status(400).json({ error: "win (boolean) is required" });
+      return;
+    }
+
+    const safeReward = typeof reward === "string" ? reward : "0";
+    const safeMode = mode === "PvP" ? "PvP" : "PvE";
+    const safeTxHash = typeof txHash === "string" && /^0x[0-9a-fA-F]{64}$/.test(txHash) ? txHash : null;
 
     const [battle] = await db
       .insert(battlesTable)
@@ -105,9 +123,9 @@ router.post("/battles", async (req, res) => {
         player: player.toLowerCase(),
         fighterId,
         win,
-        reward: reward || "0",
-        mode: mode || "PvE",
-        txHash: txHash || null,
+        reward: safeReward,
+        mode: safeMode,
+        txHash: safeTxHash,
       })
       .returning();
 
@@ -117,7 +135,7 @@ router.post("/battles", async (req, res) => {
         address: player.toLowerCase(),
         totalWins: win ? 1 : 0,
         totalBattles: 1,
-        totalRewards: win ? (reward || "0") : "0",
+        totalRewards: win ? safeReward : "0",
         fighters: 0,
       })
       .onConflictDoUpdate({
@@ -125,7 +143,7 @@ router.post("/battles", async (req, res) => {
         set: {
           totalWins: sql`${playersTable.totalWins} + ${win ? 1 : 0}`,
           totalBattles: sql`${playersTable.totalBattles} + 1`,
-          totalRewards: sql`(CAST(${playersTable.totalRewards} AS NUMERIC) + ${parseFloat(win ? reward || "0" : "0")})::TEXT`,
+          totalRewards: sql`(CAST(${playersTable.totalRewards} AS NUMERIC) + ${parseFloat(win ? safeReward : "0")})::TEXT`,
           updatedAt: new Date(),
         },
       });
@@ -142,6 +160,39 @@ router.post("/battles", async (req, res) => {
     });
   } catch (err) {
     console.error("Record battle error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/stats", async (_req, res) => {
+  try {
+    const [
+      [{ activeFighters }],
+      [{ totalBattles }],
+      [{ totalRewardsArena }],
+      [{ activeListings }],
+    ] = await Promise.all([
+      db.select({ activeFighters: sql<number>`count(*)::int` }).from(playersTable),
+      db.select({ totalBattles: sql<number>`count(*)::int` }).from(battlesTable),
+      db
+        .select({
+          totalRewardsArena: sql<string>`COALESCE(SUM(CAST(${playersTable.totalRewards} AS NUMERIC)), 0)::TEXT`,
+        })
+        .from(playersTable),
+      db
+        .select({ activeListings: sql<number>`count(*)::int` })
+        .from(marketListingsTable)
+        .where(eq(marketListingsTable.active, true)),
+    ]);
+
+    res.json({
+      activeFighters: Number(activeFighters ?? 0),
+      totalBattles: Number(totalBattles ?? 0),
+      totalRewardsArena: String(totalRewardsArena ?? "0"),
+      activeListings: Number(activeListings ?? 0),
+    });
+  } catch (err) {
+    console.error("Stats error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });

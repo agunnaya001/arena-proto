@@ -17,6 +17,8 @@ tags:
     description: Battle history operations
   - name: market
     description: Marketplace operations
+  - name: stats
+    description: Aggregate protocol statistics
 paths:
   /healthz:
     get:
@@ -126,6 +128,20 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/BattleRecord"
+
+  /stats:
+    get:
+      operationId: getStats
+      tags: [stats]
+      summary: Get protocol-wide aggregate stats
+      description: Returns counts of active fighters, total battles, total ARENA paid out, and active listings.
+      responses:
+        "200":
+          description: Aggregate stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProtocolStats"
 
   /market/listings:
     get:
@@ -290,6 +306,27 @@ components:
         - wins
         - losses
         - active
+
+    ProtocolStats:
+      type: object
+      properties:
+        activeFighters:
+          type: integer
+          description: Distinct registered players
+        totalBattles:
+          type: integer
+          description: Total battles recorded
+        totalRewardsArena:
+          type: string
+          description: Total ARENA paid out across all wins, as a decimal string
+        activeListings:
+          type: integer
+          description: Active marketplace listings
+      required:
+        - activeFighters
+        - totalBattles
+        - totalRewardsArena
+        - activeListings
 
     ErrorResponse:
       type: object

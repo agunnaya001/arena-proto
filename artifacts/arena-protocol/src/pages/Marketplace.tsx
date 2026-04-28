@@ -1,11 +1,42 @@
-import { useGetMarketListings } from "@workspace/api-client-react"
-import { Store, Filter } from "lucide-react"
-import { FighterCard } from "@/components/FighterCard"
-import { Button } from "@/components/ui/button"
-import { fighterImage } from "@/lib/fighters"
+import { useEffect, useState } from "react";
+import { useGetMarketListings, type MarketListing } from "@workspace/api-client-react";
+import { Store, Filter, Wallet, ExternalLink, ShoppingCart } from "lucide-react";
+import { FighterCard } from "@/components/FighterCard";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { fighterImage } from "@/lib/fighters";
+import { useToast } from "@/hooks/use-toast";
+import {
+  useAccount,
+  useReadContract,
+  useWriteContract,
+  useWaitForTransactionReceipt,
+} from "wagmi";
+import {
+  ARENA_ADDRESSES,
+  ARENA_MARKETPLACE_ABI,
+  ARENA_TOKEN_ABI,
+  ONE_ARENA,
+  explorerUrl,
+} from "@/lib/contracts";
+
+const RARITIES = ["All", "Common", "Rare", "Epic", "Legendary"] as const;
+type RarityFilter = (typeof RARITIES)[number];
 
 export default function Marketplace() {
-  const { data: listings, isLoading } = useGetMarketListings({ limit: 20 })
+  const { data: listings, isLoading, refetch } = useGetMarketListings({ limit: 24 });
+  const [selected, setSelected] = useState<MarketListing | null>(null);
+  const [filter, setFilter] = useState<RarityFilter>("All");
+
+  const filtered =
+    filter === "All" ? listings ?? [] : (listings ?? []).filter((l) => l.rarity === filter);
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -15,26 +46,41 @@ export default function Marketplace() {
             <Store className="w-6 h-6 text-secondary" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold font-display uppercase tracking-widest text-secondary">Black Market</h1>
+            <h1 className="text-3xl font-bold font-display uppercase tracking-widest text-secondary">
+              Black Market
+            </h1>
             <p className="text-muted-foreground font-mono text-sm">P2P Asset Exchange Hub</p>
           </div>
         </div>
-        
-        <Button variant="outline" className="font-mono text-xs">
-          <Filter className="w-4 h-4 mr-2" />
-          FILTER ASSETS
-        </Button>
+
+        <div className="flex items-center gap-2 overflow-x-auto">
+          <Filter className="w-4 h-4 text-muted-foreground shrink-0" />
+          {RARITIES.map((r) => (
+            <Button
+              key={r}
+              variant={filter === r ? "default" : "outline"}
+              size="sm"
+              className="font-mono text-[11px] uppercase"
+              onClick={() => setFilter(r)}
+            >
+              {r}
+            </Button>
+          ))}
+        </div>
       </div>
 
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {[1,2,3,4,5,6].map(i => (
-            <div key={i} className="aspect-[3/4] bg-card/40 animate-pulse clip-edges border border-border/20" />
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+            <div
+              key={i}
+              className="aspect-[3/4] bg-card/40 animate-pulse clip-edges border border-border/20"
+            />
           ))}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {listings?.map((item) => (
+          {filtered.map((item) => (
             <FighterCard
               key={item.tokenId}
               id={item.tokenId}
@@ -43,22 +89,205 @@ export default function Marketplace() {
               stats={{
                 strength: item.strength,
                 speed: item.speed,
-                intelligence: item.intelligence
+                intelligence: item.intelligence,
               }}
               wins={item.wins}
               losses={item.losses}
               price={item.price}
-              onClick={() => alert(`Open purchase modal for ${item.tokenId}`)}
+              onClick={() => setSelected(item)}
             />
           ))}
 
-          {(!listings || listings.length === 0) && (
+          {filtered.length === 0 && (
             <div className="col-span-full py-20 text-center border border-dashed border-border/50 clip-edges">
-              <p className="font-mono text-muted-foreground uppercase">NO LISTINGS FOUND IN CURRENT SECTOR</p>
+              <p className="font-mono text-muted-foreground uppercase">
+                {listings && listings.length > 0
+                  ? `NO ${filter.toUpperCase()} LISTINGS IN CURRENT SECTOR`
+                  : "NO LISTINGS FOUND IN CURRENT SECTOR"}
+              </p>
             </div>
           )}
         </div>
       )}
+
+      <PurchaseDialog
+        listing={selected}
+        onClose={() => setSelected(null)}
+        onSuccess={() => {
+          setSelected(null);
+          void refetch();
+        }}
+      />
     </div>
-  )
+  );
+}
+
+interface PurchaseDialogProps {
+  listing: MarketListing | null;
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+function PurchaseDialog({ listing, onClose, onSuccess }: PurchaseDialogProps) {
+  const { address, isConnected } = useAccount();
+  const { toast } = useToast();
+
+  const priceWei = listing ? BigInt(listing.price) * ONE_ARENA : 0n;
+
+  const { data: balance } = useReadContract({
+    address: ARENA_ADDRESSES.ArenaToken,
+    abi: ARENA_TOKEN_ABI,
+    functionName: "balanceOf",
+    args: address ? [address] : undefined,
+    query: { enabled: !!address && !!listing },
+  });
+
+  const { data: allowance, refetch: refetchAllowance } = useReadContract({
+    address: ARENA_ADDRESSES.ArenaToken,
+    abi: ARENA_TOKEN_ABI,
+    functionName: "allowance",
+    args: address ? [address, ARENA_ADDRESSES.ArenaMarketplace] : undefined,
+    query: { enabled: !!address && !!listing },
+  });
+
+  const {
+    data: approveTx,
+    writeContract: writeApprove,
+    isPending: isApprovingSig,
+  } = useWriteContract();
+  const { isLoading: isApprovingOnChain, isSuccess: approveDone } =
+    useWaitForTransactionReceipt({ hash: approveTx });
+  useEffect(() => {
+    if (approveDone) void refetchAllowance();
+  }, [approveDone, refetchAllowance]);
+
+  const {
+    data: buyTx,
+    writeContract: writeBuy,
+    isPending: isBuyingSig,
+    error: buyError,
+  } = useWriteContract();
+  const { isLoading: isBuyingOnChain, isSuccess: bought } = useWaitForTransactionReceipt({
+    hash: buyTx,
+  });
+
+  useEffect(() => {
+    if (bought) {
+      toast({ title: "PURCHASE COMPLETE", description: "Fighter NFT transferred to your wallet." });
+      onSuccess();
+    }
+  }, [bought, onSuccess, toast]);
+
+  useEffect(() => {
+    if (buyError) {
+      toast({
+        title: "PURCHASE FAILED",
+        description: buyError.message.split("\n")[0],
+        variant: "destructive",
+      });
+    }
+  }, [buyError, toast]);
+
+  if (!listing) return null;
+
+  const needsApproval = !!address && (!allowance || (allowance as bigint) < priceWei);
+  const insufficient = !!address && (!balance || (balance as bigint) < priceWei);
+
+  return (
+    <Dialog open={!!listing} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="font-display uppercase tracking-widest">
+            Acquire #{listing.tokenId}
+          </DialogTitle>
+          <DialogDescription className="font-mono text-xs">
+            {listing.rarity} · STR {listing.strength} · SPD {listing.speed} · INT{" "}
+            {listing.intelligence}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3 font-mono text-sm py-2">
+          <Row label="Price" value={`${listing.price} ARENA`} />
+          <Row label="Seller" value={`${listing.seller.slice(0, 6)}…${listing.seller.slice(-4)}`} />
+          {address && (
+            <>
+              <Row
+                label="Your balance"
+                value={`${balance ? ((balance as bigint) / ONE_ARENA).toString() : "—"} ARENA`}
+              />
+              <Row
+                label="Allowance"
+                value={`${allowance ? ((allowance as bigint) / ONE_ARENA).toString() : "0"} ARENA`}
+              />
+            </>
+          )}
+        </div>
+
+        {buyTx && (
+          <a
+            href={explorerUrl(buyTx, "tx")}
+            target="_blank"
+            rel="noreferrer"
+            className="text-[11px] font-mono text-primary/70 hover:text-primary flex items-center gap-1"
+          >
+            {buyTx.slice(0, 10)}…{buyTx.slice(-6)} <ExternalLink className="w-3 h-3" />
+          </a>
+        )}
+
+        <DialogFooter>
+          {!isConnected ? (
+            <Button disabled className="w-full">
+              <Wallet className="w-4 h-4 mr-2" />
+              CONNECT WALLET
+            </Button>
+          ) : insufficient ? (
+            <Button disabled className="w-full" variant="destructive">
+              INSUFFICIENT ARENA
+            </Button>
+          ) : needsApproval ? (
+            <Button
+              className="w-full"
+              variant="outline"
+              disabled={isApprovingSig || isApprovingOnChain}
+              onClick={() =>
+                writeApprove({
+                  address: ARENA_ADDRESSES.ArenaToken,
+                  abi: ARENA_TOKEN_ABI,
+                  functionName: "approve",
+                  args: [ARENA_ADDRESSES.ArenaMarketplace, priceWei * 2n],
+                })
+              }
+            >
+              {isApprovingSig ? "SIGN APPROVAL…" : isApprovingOnChain ? "APPROVING…" : "APPROVE ARENA"}
+            </Button>
+          ) : (
+            <Button
+              className="w-full"
+              disabled={isBuyingSig || isBuyingOnChain}
+              onClick={() =>
+                writeBuy({
+                  address: ARENA_ADDRESSES.ArenaMarketplace,
+                  abi: ARENA_MARKETPLACE_ABI,
+                  functionName: "buyNFT",
+                  args: [BigInt(listing.tokenId)],
+                })
+              }
+            >
+              <ShoppingCart className="w-4 h-4 mr-2" />
+              {isBuyingSig ? "SIGN PURCHASE…" : isBuyingOnChain ? "BUYING…" : `BUY FOR ${listing.price} ARENA`}
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between border-b border-border/30 pb-2">
+      <span className="text-muted-foreground uppercase text-xs">{label}</span>
+      <span className="text-foreground">{value}</span>
+    </div>
+  );
 }

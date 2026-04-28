@@ -9,7 +9,9 @@
 import { db } from "../lib/db/src/index.ts";
 import { marketListingsTable } from "../lib/db/src/schema/index.ts";
 
-const SELLER = "0xFfb6505912FCE95B42be4860477201bb4e204E9f"; // demo seller — deployer EOA
+const SELLER =
+  process.env.ARENA_TREASURY_ADDRESS ??
+  "0x725615639B760DAa64b3e794AA49B5A9a8A7632E"; // Arena Protocol treasury
 
 const LISTINGS = [
   { tokenId: "1", price: "120",  rarity: "Epic",      strength:  78, speed: 92, intelligence: 71, wins: 14, losses:  3 },
@@ -29,6 +31,7 @@ async function main() {
       .onConflictDoUpdate({
         target: marketListingsTable.tokenId,
         set: {
+          seller: SELLER,
           price: l.price,
           rarity: l.rarity,
           strength: l.strength,

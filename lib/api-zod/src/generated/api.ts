@@ -100,6 +100,19 @@ export const RecordBattleResponse = zod.object({
 });
 
 /**
+ * Returns counts of active fighters, total battles, total ARENA paid out, and active listings.
+ * @summary Get protocol-wide aggregate stats
+ */
+export const GetStatsResponse = zod.object({
+  activeFighters: zod.number().describe("Distinct registered players"),
+  totalBattles: zod.number().describe("Total battles recorded"),
+  totalRewardsArena: zod
+    .string()
+    .describe("Total ARENA paid out across all wins, as a decimal string"),
+  activeListings: zod.number().describe("Active marketplace listings"),
+});
+
+/**
  * Returns active NFT marketplace listings
  * @summary Get marketplace listings
  */

@@ -5,7 +5,7 @@
     "description": "Cybernetic warriors of the Arena Protocol. Each champion holds on-chain stats and a permanent battle record. Mint, train, fight, and trade.",
     "image": "/brand/logo.png",
     "external_link": "https://arenaprotocol.xyz",
-    "fee_recipient": "0xFfb6505912FCE95B42be4860477201bb4e204E9f",
+    "fee_recipient": "0x725615639B760DAa64b3e794AA49B5A9a8A7632E",
     "seller_fee_basis_points": 200
   },
   "fighters": [
