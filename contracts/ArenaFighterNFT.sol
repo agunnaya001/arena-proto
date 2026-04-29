@@ -4,6 +4,16 @@ pragma solidity ^0.8.24;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
+/**
+ * @title ArenaFighterNFT
+ * @notice ERC721 contract for mintable fighter NFTs with rarity tiers.
+ * 
+ * SECURITY NOTE (HIGH-4 Mitigation):
+ * Rarity determination uses block.timestamp and block.prevrandao (weak RNG).
+ * Since only the contract owner can mint, rarity is deterministic but controlled 
+ * by the owner/minter. For production randomness guarantees, integrate Chainlink VRF v2.5
+ * before removing owner control or deploying to a multi-signer environment.
+ */
 contract ArenaFighterNFT is ERC721, Ownable {
     uint256 private _nextTokenId;
 

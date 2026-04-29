@@ -55,59 +55,74 @@ async function main() {
     ({ contract: arenaRewardVault, addr: arenaRewardVaultAddress } = await deploy(F, [deployer.address, arenaCoinAddress], "ArenaRewardVault"));
   }
 
-  // ── 4. ArenaBattle ───────────────────────────────────────────────────────
-  let arenaBattleAddress = process.env.ARENA_BATTLE_ADDRESS;
-  let arenaBattle;
-  if (arenaBattleAddress) {
-    console.log("[4/7] ArenaBattle already deployed:", arenaBattleAddress);
-    arenaBattle = await ethers.getContractAt("ArenaBattle", arenaBattleAddress);
-  } else {
-    console.log("[4/7] Deploying ArenaBattle...");
-    const F = await ethers.getContractFactory("ArenaBattle");
-    ({ contract: arenaBattle, addr: arenaBattleAddress } = await deploy(F, [deployer.address, arenaCoinAddress, arenaFighterNFTAddress, arenaRewardVaultAddress], "ArenaBattle"));
-  }
-
-  // ── 5. ArenaStaking ───────────────────────────────────────────────────────
-  let arenaStakingAddress = process.env.ARENA_STAKING_ADDRESS;
-  let arenaStaking;
-  if (arenaStakingAddress) {
-    console.log("[5/7] ArenaStaking already deployed:", arenaStakingAddress);
-    arenaStaking = await ethers.getContractAt("ArenaStaking", arenaStakingAddress);
-  } else {
-    console.log("[5/7] Deploying ArenaStaking...");
-    const F = await ethers.getContractFactory("ArenaStaking");
-    ({ contract: arenaStaking, addr: arenaStakingAddress } = await deploy(F, [deployer.address, arenaCoinAddress], "ArenaStaking"));
-  }
-
-  // ── 6. ArenaMarketplace ───────────────────────────────────────────────────
-  let arenaMarketplaceAddress = process.env.ARENA_MARKETPLACE_ADDRESS;
-  let arenaMarketplace;
-  if (arenaMarketplaceAddress) {
-    console.log("[6/7] ArenaMarketplace already deployed:", arenaMarketplaceAddress);
-    arenaMarketplace = await ethers.getContractAt("ArenaMarketplace", arenaMarketplaceAddress);
-  } else {
-    console.log("[6/7] Deploying ArenaMarketplace...");
-    const F = await ethers.getContractFactory("ArenaMarketplace");
-    ({ contract: arenaMarketplace, addr: arenaMarketplaceAddress } = await deploy(F, [deployer.address, arenaCoinAddress, arenaFighterNFTAddress], "ArenaMarketplace"));
-  }
-
-  // ── 7. ArenaLeaderboard ───────────────────────────────────────────────────
+  // ── 4. ArenaLeaderboard (deploy before ArenaBattle) ────────────────────────
   let arenaLeaderboardAddress = process.env.ARENA_LEADERBOARD_ADDRESS;
   let arenaLeaderboard;
   if (arenaLeaderboardAddress) {
-    console.log("[7/7] ArenaLeaderboard already deployed:", arenaLeaderboardAddress);
+    console.log("[4/8] ArenaLeaderboard already deployed:", arenaLeaderboardAddress);
     arenaLeaderboard = await ethers.getContractAt("ArenaLeaderboard", arenaLeaderboardAddress);
   } else {
-    console.log("[7/7] Deploying ArenaLeaderboard...");
+    console.log("[4/8] Deploying ArenaLeaderboard...");
     const F = await ethers.getContractFactory("ArenaLeaderboard");
     ({ contract: arenaLeaderboard, addr: arenaLeaderboardAddress } = await deploy(F, [deployer.address], "ArenaLeaderboard"));
   }
 
+  // ── 5. ArenaBattle ───────────────────────────────────────────────────────
+  let arenaBattleAddress = process.env.ARENA_BATTLE_ADDRESS;
+  let arenaBattle;
+  if (arenaBattleAddress) {
+    console.log("[5/8] ArenaBattle already deployed:", arenaBattleAddress);
+    arenaBattle = await ethers.getContractAt("ArenaBattle", arenaBattleAddress);
+  } else {
+    console.log("[5/8] Deploying ArenaBattle...");
+    const F = await ethers.getContractFactory("ArenaBattle");
+    ({ contract: arenaBattle, addr: arenaBattleAddress } = await deploy(F, [deployer.address, arenaCoinAddress, arenaFighterNFTAddress, arenaRewardVaultAddress, arenaLeaderboardAddress], "ArenaBattle"));
+  }
+
+  // ── 6. ArenaStaking ───────────────────────────────────────────────────────
+  let arenaStakingAddress = process.env.ARENA_STAKING_ADDRESS;
+  let arenaStaking;
+  if (arenaStakingAddress) {
+    console.log("[6/8] ArenaStaking already deployed:", arenaStakingAddress);
+    arenaStaking = await ethers.getContractAt("ArenaStaking", arenaStakingAddress);
+  } else {
+    console.log("[6/8] Deploying ArenaStaking...");
+    const F = await ethers.getContractFactory("ArenaStaking");
+    ({ contract: arenaStaking, addr: arenaStakingAddress } = await deploy(F, [deployer.address, arenaCoinAddress], "ArenaStaking"));
+  }
+
+  // ── 7. ArenaMarketplace ───────────────────────────────────────────────────
+  let arenaMarketplaceAddress = process.env.ARENA_MARKETPLACE_ADDRESS;
+  let arenaMarketplace;
+  if (arenaMarketplaceAddress) {
+    console.log("[7/8] ArenaMarketplace already deployed:", arenaMarketplaceAddress);
+    arenaMarketplace = await ethers.getContractAt("ArenaMarketplace", arenaMarketplaceAddress);
+  } else {
+    console.log("[7/8] Deploying ArenaMarketplace...");
+    const F = await ethers.getContractFactory("ArenaMarketplace");
+    ({ contract: arenaMarketplace, addr: arenaMarketplaceAddress } = await deploy(F, [deployer.address, arenaCoinAddress, arenaFighterNFTAddress], "ArenaMarketplace"));
+  }
+
+  // ── 8. Grant ArenaRewardVault access to ArenaBattle ────────────────────────
+  console.log("[8/8] Granting ArenaBattle WITHDRAWER_ROLE on RewardVault...");
+  try {
+    const WITHDRAWER_ROLE = ethers.keccak256(ethers.toUtf8Bytes("WITHDRAWER_ROLE"));
+    const tx = await arenaRewardVault.grantRole(WITHDRAWER_ROLE, arenaBattleAddress, GAS_OPTS);
+    await tx.wait();
+    console.log("  ✅ Done");
+  } catch (err) {
+    console.log("  ⚠️ Could not grant role (may already exist):", err.message);
+  }
+
   // ── Post-deployment setup ─────────────────────────────────────────────────
   console.log("\n[Setup] Linking Leaderboard → BattleContract...");
-  const tx = await arenaLeaderboard.setBattleContract(arenaBattleAddress, GAS_OPTS);
-  await tx.wait();
-  console.log("  ✅ Done");
+  try {
+    const tx = await arenaLeaderboard.setBattleContract(arenaBattleAddress, GAS_OPTS);
+    await tx.wait();
+    console.log("  ✅ Done");
+  } catch (err) {
+    console.log("  ⚠️ Could not link (may already be set):", err.message);
+  }
 
   const finalBalance = await deployer.provider.getBalance(deployer.address);
   console.log("\n========================================");
@@ -116,10 +131,10 @@ async function main() {
   console.log("ArenaCoin:        ", arenaCoinAddress);
   console.log("ArenaFighterNFT:  ", arenaFighterNFTAddress);
   console.log("ArenaRewardVault: ", arenaRewardVaultAddress);
+  console.log("ArenaLeaderboard: ", arenaLeaderboardAddress);
   console.log("ArenaBattle:      ", arenaBattleAddress);
   console.log("ArenaStaking:     ", arenaStakingAddress);
   console.log("ArenaMarketplace: ", arenaMarketplaceAddress);
-  console.log("ArenaLeaderboard: ", arenaLeaderboardAddress);
   console.log("========================================");
   console.log("Remaining balance:", ethers.formatEther(finalBalance), "ETH");
   console.log("\n--- Env vars to save ---");
