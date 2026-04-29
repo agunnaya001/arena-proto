@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 11 14 39;
+    --foreground: 228 230 235;
+    --card: 22 27 51;
+    --primary: 0 212 255;
+    --secondary: 124 58 237;
+    --accent: 255 20 147;
+    --border: 30 41 59;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .clip-edges {
+    clip-path: polygon(
+      0 2%,
+      2% 0,
+      100% 0,
+      100% 98%,
+      98% 100%,
+      0 100%
+    );
+  }
+
+  .glow {
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+  }
+
+  .glow-accent {
+    box-shadow: 0 0 10px rgba(255, 20, 147, 0.3);
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgb(59 130 246 / 0.5);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(59 130 246 / 0.7);
+}
