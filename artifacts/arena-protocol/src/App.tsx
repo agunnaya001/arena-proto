@@ -11,6 +11,7 @@ import Mint from "@/pages/Mint";
 import Arena from "@/pages/Arena";
 import Leaderboard from "@/pages/Leaderboard";
 import Marketplace from "@/pages/Marketplace";
+import Dashboard from "@/pages/Dashboard";
 import Profile from "@/pages/Profile";
 import NotFound from "@/pages/not-found";
 
@@ -32,6 +33,7 @@ function Router() {
         <Route path="/arena" component={Arena} />
         <Route path="/leaderboard" component={Leaderboard} />
         <Route path="/marketplace" component={Marketplace} />
+        <Route path="/dashboard" component={Dashboard} />
         <Route path="/profile" component={Profile} />
         <Route component={NotFound} />
       </Switch>

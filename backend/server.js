@@ -28,7 +28,30 @@ async function initDb() {
       total_battles INTEGER DEFAULT 0,
       total_rewards TEXT DEFAULT '0',
       fighters INTEGER DEFAULT 0,
+      region TEXT DEFAULT 'UNKNOWN',
       updated_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS seasons (
+      id SERIAL PRIMARY KEY,
+      start_time TIMESTAMP NOT NULL,
+      end_time TIMESTAMP NOT NULL,
+      reward_pool TEXT DEFAULT '0',
+      active BOOLEAN DEFAULT true,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS season_stats (
+      id SERIAL PRIMARY KEY,
+      season_id INTEGER NOT NULL,
+      player TEXT NOT NULL,
+      wins INTEGER DEFAULT 0,
+      battles INTEGER DEFAULT 0,
+      rewards TEXT DEFAULT '0',
+      rank INTEGER,
+      updated_at TIMESTAMP DEFAULT NOW(),
+      UNIQUE(season_id, player),
+      FOREIGN KEY (season_id) REFERENCES seasons(id) ON DELETE CASCADE
     );
 
     CREATE TABLE IF NOT EXISTS battles (
@@ -39,7 +62,9 @@ async function initDb() {
       reward TEXT DEFAULT '0',
       mode TEXT DEFAULT 'PvE',
       tx_hash TEXT,
-      timestamp TIMESTAMP DEFAULT NOW()
+      season_id INTEGER,
+      timestamp TIMESTAMP DEFAULT NOW(),
+      FOREIGN KEY (season_id) REFERENCES seasons(id) ON DELETE SET NULL
     );
 
     CREATE TABLE IF NOT EXISTS market_listings (
@@ -53,8 +78,23 @@ async function initDb() {
       wins INTEGER DEFAULT 0,
       losses INTEGER DEFAULT 0,
       active BOOLEAN DEFAULT true,
-      listed_at TIMESTAMP DEFAULT NOW()
+      listed_at TIMESTAMP DEFAULT NOW(),
+      price_updated_at TIMESTAMP DEFAULT NOW()
     );
+
+    CREATE TABLE IF NOT EXISTS price_history (
+      id SERIAL PRIMARY KEY,
+      token_id TEXT NOT NULL,
+      old_price TEXT,
+      new_price TEXT NOT NULL,
+      timestamp TIMESTAMP DEFAULT NOW(),
+      FOREIGN KEY (token_id) REFERENCES market_listings(token_id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_season_stats_season ON season_stats(season_id);
+    CREATE INDEX IF NOT EXISTS idx_season_stats_player ON season_stats(player);
+    CREATE INDEX IF NOT EXISTS idx_battles_season ON battles(season_id);
+    CREATE INDEX IF NOT EXISTS idx_battles_player ON battles(player);
   `);
   console.log("Database initialized");
 }
@@ -82,22 +122,41 @@ app.get("/api/healthz", (req, res) => {
 
 app.get("/api/leaderboard", async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit) || 10;
-    const result = await pool.query(
-      `SELECT address, total_wins, total_battles, total_rewards
-       FROM players
-       ORDER BY total_wins DESC
-       LIMIT $1`,
-      [limit]
-    );
+    const limit = parseInt(req.query.limit) || 50;
+    const season = req.query.season || "all";
+    const region = req.query.region;
+
+    let query, params = [];
+
+    if (season !== "all") {
+      // Seasonal leaderboard
+      query = `
+        SELECT s.player as address, s.wins as total_wins, s.battles as total_battles, s.rewards as total_rewards, s.rank
+        FROM season_stats s
+        INNER JOIN seasons se ON s.season_id = se.id
+        WHERE se.id = (SELECT id FROM seasons WHERE active = true ORDER BY start_time DESC LIMIT 1)
+      `;
+    } else {
+      // Global lifetime leaderboard
+      query = `SELECT address, total_wins, total_battles, total_rewards FROM players`;
+      if (region) {
+        query += ` WHERE region = $1`;
+        params.push(region);
+      }
+    }
+
+    query += ` ORDER BY total_wins DESC LIMIT $${params.length + 1}`;
+    params.push(limit);
+
+    const result = await pool.query(query, params);
 
     const entries = result.rows.map((row, idx) => ({
-      rank: idx + 1,
+      rank: row.rank || idx + 1,
       address: row.address,
       totalWins: row.total_wins,
       totalBattles: row.total_battles,
       totalRewards: row.total_rewards,
-      winRate: row.total_battles > 0 ? (row.total_wins / row.total_battles) * 100 : 0,
+      winRate: row.total_battles > 0 ? ((row.total_wins / row.total_battles) * 100).toFixed(1) : 0,
     }));
 
     res.json(entries);
@@ -107,28 +166,93 @@ app.get("/api/leaderboard", async (req, res) => {
   }
 });
 
+app.get("/api/leaderboard/seasons", async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT id, start_time, end_time, reward_pool, active
+       FROM seasons
+       ORDER BY start_time DESC`
+    );
+
+    const seasons = result.rows.map((row) => ({
+      id: row.id,
+      startTime: row.start_time,
+      endTime: row.end_time,
+      rewardPool: row.reward_pool,
+      active: row.active,
+    }));
+
+    res.json(seasons);
+  } catch (err) {
+    console.error("Seasons error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.get("/api/leaderboard/regions", async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT region, COUNT(*) as player_count
+       FROM players
+       WHERE region != 'UNKNOWN'
+       GROUP BY region
+       ORDER BY player_count DESC`
+    );
+
+    const regions = result.rows.map((row) => ({
+      region: row.region,
+      players: row.player_count,
+    }));
+
+    res.json(regions);
+  } catch (err) {
+    console.error("Regions error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 app.get("/api/players/:address", async (req, res) => {
   try {
     const { address } = req.params;
-    const result = await pool.query("SELECT * FROM players WHERE address = $1", [address.toLowerCase()]);
+    const lowerAddr = address.toLowerCase();
 
-    if (result.rows.length === 0) {
+    const playerResult = await pool.query("SELECT * FROM players WHERE address = $1", [lowerAddr]);
+
+    if (playerResult.rows.length === 0) {
       return res.status(404).json({ error: "Player not found" });
     }
 
-    const row = result.rows[0];
+    const row = playerResult.rows[0];
     const rankResult = await pool.query(
       "SELECT COUNT(*) as rank FROM players WHERE total_wins > $1",
       [row.total_wins]
     );
 
+    // Get current season stats
+    const seasonResult = await pool.query(
+      `SELECT s.* FROM season_stats s
+       INNER JOIN seasons se ON s.season_id = se.id
+       WHERE s.player = $1 AND se.active = true`,
+      [lowerAddr]
+    );
+
+    const currentSeasonStats = seasonResult.rows[0] || null;
+
     res.json({
       address: row.address,
+      region: row.region,
       totalWins: row.total_wins,
       totalBattles: row.total_battles,
       totalRewards: row.total_rewards,
+      winRate: row.total_battles > 0 ? ((row.total_wins / row.total_battles) * 100).toFixed(1) : 0,
       fighters: row.fighters,
-      rank: parseInt(rankResult.rows[0].rank) + 1,
+      globalRank: parseInt(rankResult.rows[0].rank) + 1,
+      seasonStats: currentSeasonStats ? {
+        wins: currentSeasonStats.wins,
+        battles: currentSeasonStats.battles,
+        rewards: currentSeasonStats.rewards,
+        seasonRank: currentSeasonStats.rank,
+      } : null,
     });
   } catch (err) {
     console.error("Player stats error:", err);

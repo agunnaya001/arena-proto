@@ -10,13 +10,34 @@ contract ArenaLeaderboard is Ownable {
         uint256 totalRewards;
     }
 
+    struct SeasonStats {
+        uint256 wins;
+        uint256 battles;
+        uint256 rewards;
+    }
+
+    struct Season {
+        uint256 startTime;
+        uint256 endTime;
+        uint256 rewardPool;
+        bool active;
+    }
+
+    // Global stats
     mapping(address => PlayerStats) public playerStats;
     address[] public registeredPlayers;
     mapping(address => bool) public isRegistered;
 
+    // Seasonal stats
+    mapping(uint256 => Season) public seasons;
+    mapping(uint256 => mapping(address => SeasonStats)) public seasonStats;
+    uint256 public currentSeasonId;
+
     address public battleContract;
 
     event StatsUpdated(address indexed player, uint256 wins, uint256 battles, uint256 rewards);
+    event SeasonStarted(uint256 indexed seasonId, uint256 startTime, uint256 endTime);
+    event SeasonEnded(uint256 indexed seasonId, address topWinner, uint256 topReward);
 
     modifier onlyBattle() {
         require(msg.sender == battleContract || msg.sender == owner(), "Not authorized");
@@ -30,15 +51,26 @@ contract ArenaLeaderboard is Ownable {
     }
 
     function recordFight(address player, bool win, uint256 reward) external onlyBattle {
+        // Register player if new
         if (!isRegistered[player]) {
             registeredPlayers.push(player);
             isRegistered[player] = true;
         }
 
+        // Update global stats
         playerStats[player].totalBattles++;
         if (win) {
             playerStats[player].totalWins++;
             playerStats[player].totalRewards += reward;
+        }
+
+        // Update seasonal stats if season is active
+        if (seasons[currentSeasonId].active) {
+            seasonStats[currentSeasonId][player].battles++;
+            if (win) {
+                seasonStats[currentSeasonId][player].wins++;
+                seasonStats[currentSeasonId][player].rewards += reward;
+            }
         }
 
         emit StatsUpdated(
@@ -49,32 +81,45 @@ contract ArenaLeaderboard is Ownable {
         );
     }
 
-    function getTopPlayers(uint256 count) external view returns (address[] memory, PlayerStats[] memory) {
-        uint256 total = registeredPlayers.length;
-        uint256 resultCount = count < total ? count : total;
+    // Admin: Start a new season
+    function startSeason(uint256 endTime, uint256 rewardPool) external onlyOwner {
+        require(endTime > block.timestamp, "End time must be in future");
+        
+        uint256 seasonId = currentSeasonId + 1;
+        seasons[seasonId] = Season({
+            startTime: block.timestamp,
+            endTime: endTime,
+            rewardPool: rewardPool,
+            active: true
+        });
 
-        address[] memory sorted = new address[](total);
-        for (uint256 i = 0; i < total; i++) {
-            sorted[i] = registeredPlayers[i];
-        }
+        currentSeasonId = seasonId;
+        emit SeasonStarted(seasonId, block.timestamp, endTime);
+    }
 
-        for (uint256 i = 0; i < total - 1; i++) {
-            for (uint256 j = 0; j < total - i - 1; j++) {
-                if (playerStats[sorted[j]].totalWins < playerStats[sorted[j + 1]].totalWins) {
-                    (sorted[j], sorted[j + 1]) = (sorted[j + 1], sorted[j]);
-                }
+    // Admin: End season and emit event
+    function endSeason() external onlyOwner {
+        require(seasons[currentSeasonId].active, "No active season");
+        
+        uint256 seasonId = currentSeasonId;
+        seasons[seasonId].active = false;
+
+        // Find top winner this season (off-chain sorting recommended)
+        address topWinner = address(0);
+        uint256 topWins = 0;
+        for (uint256 i = 0; i < registeredPlayers.length; i++) {
+            if (seasonStats[seasonId][registeredPlayers[i]].wins > topWins) {
+                topWins = seasonStats[seasonId][registeredPlayers[i]].wins;
+                topWinner = registeredPlayers[i];
             }
         }
 
-        address[] memory topAddresses = new address[](resultCount);
-        PlayerStats[] memory topStats = new PlayerStats[](resultCount);
+        emit SeasonEnded(seasonId, topWinner, topWins);
+    }
 
-        for (uint256 i = 0; i < resultCount; i++) {
-            topAddresses[i] = sorted[i];
-            topStats[i] = playerStats[sorted[i]];
-        }
-
-        return (topAddresses, topStats);
+    // MED-3: Get player stats for a specific season (off-chain sorted)
+    function getSeasonStats(uint256 seasonId, address player) external view returns (SeasonStats memory) {
+        return seasonStats[seasonId][player];
     }
 
     function getPlayerStats(address player) external view returns (PlayerStats memory) {
@@ -83,5 +128,9 @@ contract ArenaLeaderboard is Ownable {
 
     function totalPlayers() external view returns (uint256) {
         return registeredPlayers.length;
+    }
+
+    function getRegisteredPlayers() external view returns (address[] memory) {
+        return registeredPlayers;
     }
 }

@@ -1,12 +1,34 @@
+import { useState, useEffect } from "react"
 import { useGetLeaderboard } from "@workspace/api-client-react"
-import { Trophy, Medal, Crown } from "lucide-react"
+import { Trophy, Medal, Crown, Globe } from "lucide-react"
 import { formatAddress } from "@/lib/utils"
 
 export default function Leaderboard() {
-  const { data: leaderboard, isLoading, error } = useGetLeaderboard({ limit: 50 })
+  const [season, setSeason] = useState("all")
+  const [region, setRegion] = useState("")
+  const [seasons, setSeasons] = useState([])
+  const [regions, setRegions] = useState([])
+  
+  const { data: leaderboard, isLoading, error } = useGetLeaderboard({ limit: 50, season })
+
+  useEffect(() => {
+    // Fetch available seasons
+    fetch("/api/leaderboard/seasons")
+      .then(res => res.json())
+      .then(data => setSeasons(data))
+      .catch(err => console.error("Failed to load seasons:", err))
+  }, [])
+
+  useEffect(() => {
+    // Fetch available regions
+    fetch("/api/leaderboard/regions")
+      .then(res => res.json())
+      .then(data => setRegions(data))
+      .catch(err => console.error("Failed to load regions:", err))
+  }, [])
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="max-w-6xl mx-auto">
       <div className="flex items-center gap-3 mb-8">
         <div className="p-3 bg-accent/10 clip-edges border border-accent/30">
           <Trophy className="w-6 h-6 text-accent" />
@@ -14,6 +36,45 @@ export default function Leaderboard() {
         <div>
           <h1 className="text-3xl font-bold font-display uppercase tracking-widest text-accent">Global Rankings</h1>
           <p className="text-muted-foreground font-mono text-sm">Top commanders in the Arena Protocol</p>
+        </div>
+      </div>
+
+      {/* Season & Region Controls */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        {/* Season Selector */}
+        <div>
+          <label className="text-sm font-mono text-muted-foreground uppercase mb-2 block">Season</label>
+          <select
+            value={season}
+            onChange={(e) => setSeason(e.target.value)}
+            className="w-full bg-card/60 border border-border/50 text-foreground font-mono text-sm px-4 py-2 clip-edges hover:border-accent/50 transition-colors"
+          >
+            <option value="all">All Time</option>
+            {seasons.map((s) => (
+              <option key={s.id} value={s.id}>
+                Season {s.id} ({new Date(s.startTime).toLocaleDateString()})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Region Selector */}
+        <div>
+          <label className="text-sm font-mono text-muted-foreground uppercase mb-2 block flex items-center gap-2">
+            <Globe className="w-4 h-4" /> Region
+          </label>
+          <select
+            value={region}
+            onChange={(e) => setRegion(e.target.value)}
+            className="w-full bg-card/60 border border-border/50 text-foreground font-mono text-sm px-4 py-2 clip-edges hover:border-accent/50 transition-colors"
+          >
+            <option value="">All Regions</option>
+            {regions.map((r) => (
+              <option key={r.region} value={r.region}>
+                {r.region} ({r.players} players)
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
